@@ -12,7 +12,7 @@ def generate_board():  # Generates the chessboard and the pieces in starting pos
     CHESS_ROWS = 8
 
     # Loading chess board
-    screen = pygame.display.set_mode((512, 512))
+    screen = pygame.display.set_mode((512, 800))
     darkSquare = pygame.image.load("images/ChessDarkSquare.png").convert()
     lightSquare = pygame.image.load("images/ChessLightSquare.png").convert()
     selectHighlight = pygame.Surface((64, 64))
@@ -122,7 +122,11 @@ def generate_board():  # Generates the chessboard and the pieces in starting pos
                     render_board()  # Re-render the board after the move
                 else:
                     # Select a piece to move
-                    selected_piece = chessBoardPositions[row][column]
+                    if row < 8 and column < 8:  # Ensure that the player cannot go out of bounds.
+                        selected_piece = chessBoardPositions[row][column]
+                    else:
+                        selected_piece = None
+                        selected_coords = None
                     if selected_piece and selected_piece[0] == player_turn:
                         selected_coords = (row, column)
                     else:
@@ -130,144 +134,136 @@ def generate_board():  # Generates the chessboard and the pieces in starting pos
 
 
 def valid_moves(piece, chessboard, position):
-    row, column = position
-
     piece_type = piece[1]
-    piece_color = piece[0]
     moves = []
 
     if piece_type == "P":  # Movement Rules for Pawn
-        if piece_color == "w":
-            movement = -1  # Pawns can only move forward so a white pawn would move towards blacks position
-            start_row = 6
-        else:
-            movement = 1
-            start_row = 1
-
-        if chessboard[row + movement][column] is None:
-            moves.append((row + movement, column))
-        if row == start_row and chessboard[row + movement][column] is None and chessboard[row + 2 * movement][column] is None:
-            moves.append((row + 2 * movement, column))
-
-        newRow = row + movement
-        newColumn = column + movement
-        if 0 <= newRow <= 7 and 0 <= newColumn <= 7 and chessboard[newRow][newColumn] is not None:
-            if chessboard[newRow][newColumn][0] != piece_color:
-                moves.append((newRow, newColumn))
-        newColumn = column - movement
-        if 0 <= newRow <= 7 and 0 <= newColumn <= 7 and chessboard[newRow][newColumn] is not None:
-            if chessboard[newRow][newColumn][0] != piece_color:
-                moves.append((newRow, newColumn))
+        moves = pawn_movement(piece, chessboard, position)
 
     if piece_type == "R":  # Movement rules for Rook
-        for newRow in range(8):
-            if chessboard[newRow][column] is None:
-                moves.append((newRow, column))
-            if chessboard[newRow][column] is not None and chessboard[newRow][column][0] != piece_color:
-                moves.append((newRow, column))
-        for newColumn in range(8):
-            if chessboard[row][newColumn] is None:
-                moves.append((row, newColumn))
-            if chessboard[row][newColumn] is not None and chessboard[row][newColumn][0] != piece_color:
-                moves.append((row, newColumn))
+        moves = rook_movement(piece, chessboard, position)
 
     if piece_type == "B":  # Movement rules for Bishop
-        movement = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # Top-left, top-right, bottom-left, bottom-right
-        for direction in movement:
-            rowDirection, columnDirection = direction
-            newRow, newColumn = row, column
-            while True:
-                newRow += rowDirection
-                newColumn += columnDirection
-                if 0 <= newRow < 8 and 0 <= newColumn < 8:  # Stay within bounds
-                    if chessboard[newRow][newColumn] is None:  # Empty square
-                        moves.append((newRow, newColumn))
-                    if chessboard[newRow][newColumn] is not None and chessboard[newRow][newColumn][0] != piece_color:  # Capture opponent piece
-                        moves.append((newRow, newColumn))
-                else:
-                    break
+        moves = bishop_movement(piece, chessboard, position)
 
     if piece_type == "Q":  # Movement Rules for Queen
-
-        for newRow in range(8):  # Vertical and Horizontal movement for Queen
-            if chessboard[newRow][column] is None:
-                moves.append((newRow, column))
-            if chessboard[newRow][column] is not None and chessboard[newRow][column][0] != piece_color:
-                moves.append((newRow, column))
-        for newColumn in range(8):
-            if chessboard[row][newColumn] is None:
-                moves.append((row, newColumn))
-            if chessboard[row][newColumn] is not None and chessboard[row][newColumn][0] != piece_color:
-                moves.append((row, newColumn))
-
-        movement = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # Diagonals for Queen.
-        for direction in movement:
-            rowDirection, columnDirection = direction
-            newRow, newColumn = row, column
-            while True:
-                newRow += rowDirection
-                newColumn += columnDirection
-                if 0 <= newRow < 8 and 0 <= newColumn < 8:
-                    if chessboard[newRow][newColumn] is None:
-                        moves.append((newRow, newColumn))
-                    if chessboard[newRow][newColumn] is not None and chessboard[newRow][newColumn][0] != piece_color:  # Capture opponent piece
-                        moves.append((newRow, newColumn))
-                else:
-                    break
-        pass
+        moves = rook_movement(piece, chessboard, position)
+        moves += bishop_movement(piece, chessboard, position)
 
     if piece_type == "K":
+        moves = king_movement(piece, chessboard, position)
 
-        newRow = row + 1
-        newColumn = column + 1
-        # Check bounds before accessing chessboard
-        if 0 <= newRow < 8 and 0 <= column < 8 and chessboard[newRow][column] is None:
-            moves.append((newRow, column))
-        if 0 <= newRow < 8 and 0 <= column < 8 and chessboard[newRow][column] is not None and \
-                chessboard[newRow][column][0] != piece_color:
-            moves.append((newRow, column))
-        if 0 <= row < 8 and 0 <= newColumn < 8 and chessboard[row][newColumn] is None:
-            moves.append((row, newColumn))
-        if 0 <= row < 8 and 0 <= newColumn < 8 and chessboard[row][newColumn] is not None and \
-                chessboard[row][newColumn][0] != piece_color:
-            moves.append((row, newColumn))
-        newRow = row - 1
-        newColumn = column - 1
-        # Check bounds before accessing chessboard
-        if 0 <= newRow < 8 and 0 <= column < 8 and chessboard[newRow][column] is None:
-            moves.append((newRow, column))
-        if 0 <= newRow < 8 and 0 <= column < 8 and chessboard[newRow][column] is not None and \
-                chessboard[newRow][column][0] != piece_color:
-            moves.append((newRow, column))
-        if 0 <= row < 8 and 0 <= newColumn < 8 and chessboard[row][newColumn] is None:
-            moves.append((row, newColumn))
-        if 0 <= row < 8 and 0 <= newColumn < 8 and chessboard[row][newColumn] is not None and \
-                chessboard[row][newColumn][0] != piece_color:
-            moves.append((row, newColumn))
+    if piece_type == "N":  # Movement rules for Knight
+        moves = knight_movement(piece, chessboard, position)
 
-        movement = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # Single diagonal movement for King
-        for direction in movement:
-            rowDirection, columnDirection = direction
-            newRow, newColumn = row, column
+    return moves
+
+
+def pawn_movement(piece, chessboard, position):
+    row, column = position
+    piece_color = piece[0]
+    moves = []
+
+    if piece_color == "w":
+        movement = -1  # Pawns can only move forward so a white pawn would move towards blacks position
+        start_row = 6
+    else:
+        movement = 1
+        start_row = 1
+
+    if chessboard[row + movement][column] is None:
+        moves.append((row + movement, column))
+    if row == start_row and chessboard[row + movement][column] is None and chessboard[row + 2 * movement][column] is None:
+        moves.append((row + 2 * movement, column))
+
+    newRow = row + movement
+    newColumn = column + movement
+    if 0 <= newRow <= 7 and 0 <= newColumn <= 7 and chessboard[newRow][newColumn] is not None:
+        if chessboard[newRow][newColumn][0] != piece_color:
+            moves.append((newRow, newColumn))
+    newColumn = column - movement
+    if 0 <= newRow <= 7 and 0 <= newColumn <= 7 and chessboard[newRow][newColumn] is not None:
+        if chessboard[newRow][newColumn][0] != piece_color:
+            moves.append((newRow, newColumn))
+    return moves
+
+
+def rook_movement(piece, chessboard, position):
+    row, column = position
+    piece_color = piece[0]
+    moves = []
+    for newRow in range(8):
+        if chessboard[newRow][column] is None:
+            moves.append((newRow, column))
+        if chessboard[newRow][column] is not None and chessboard[newRow][column][0] != piece_color:
+            moves.append((newRow, column))
+    for newColumn in range(8):
+        if chessboard[row][newColumn] is None:
+            moves.append((row, newColumn))
+        if chessboard[row][newColumn] is not None and chessboard[row][newColumn][0] != piece_color:
+            moves.append((row, newColumn))
+    return moves
+
+
+def bishop_movement(piece, chessboard, position):
+    row, column = position
+    piece_color = piece[0]
+    moves = []
+    movement = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # Top-left, top-right, bottom-left, bottom-right
+    for direction in movement:
+        rowDirection, columnDirection = direction
+        newRow, newColumn = row, column
+        while True:
             newRow += rowDirection
             newColumn += columnDirection
+            if 0 <= newRow < 8 and 0 <= newColumn < 8:  # Stay within bounds
+                if chessboard[newRow][newColumn] is None:  # Empty square
+                    moves.append((newRow, newColumn))
+                if chessboard[newRow][newColumn] is not None and chessboard[newRow][newColumn][0] != piece_color:  # Capture opponent piece
+                    moves.append((newRow, newColumn))
+            else:
+                break
+    return moves
 
-            if 0 <= newRow < 8 and 0 <= newColumn < 8 and chessboard[newRow][newColumn] is None:
-                moves.append((newRow, newColumn))
-            if 0 <= newRow < 8 and 0 <= newColumn < 8 and chessboard[newRow][newColumn] is not None and \
-                    chessboard[newRow][newColumn][0] != piece_color:
-                moves.append((newRow, newColumn))
 
-    if piece_type == "N":
-        movement = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (2, -1), (2, 1)]
-        for direction in movement:
-            rowDirection, columnDirection = direction
-            newRow, newColumn = row + rowDirection, column + columnDirection
-            if 0 <= newRow < 8 and 0 <= newColumn < 8 and chessboard[newRow][newColumn] is None:
-                moves.append((newRow, newColumn))
-            if 0 <= newRow < 8 and 0 <= newColumn < 8 and chessboard[newRow][newColumn] is not None and chessboard[newRow][newColumn][0] != piece_color:
-                moves.append((newRow, newColumn))
+def king_movement(piece, chessboard, position):
+    piece_color = piece[0]
+    row, column = position
+    moves = []
+    movements = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+    for direction in movements:
+        rowDirection, columnDirection = direction
+        newRow, newColumn = row + rowDirection, column + columnDirection
 
+        if 0 <= newRow < 8 and 0 <= newColumn < 8:  # Check bounds
+            if chessboard[newRow][column] is None:
+                moves.append((newRow, column))
+            if chessboard[row][newColumn] is None:
+                moves.append((row, newColumn))
+            if chessboard[newRow][newColumn] is None:
+                moves.append((newRow, newColumn))
+            if chessboard[newRow][column] is not None and chessboard[newRow][column][0] != piece_color:
+                moves.append((newRow, column))
+            if chessboard[row][newColumn] is not None and chessboard[row][newColumn][0] != piece_color:
+                moves.append((row, newColumn))
+            if chessboard[newRow][newColumn] is not None and chessboard[newRow][newColumn][0] != piece_color:
+                moves.append((newRow, newColumn))
+    return moves
+
+
+def knight_movement(piece, chessboard, position):
+    piece_color = piece[0]
+    row, column = position
+    movement = [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]
+    moves = []
+    for direction in movement:
+        rowDirection, columnDirection = direction
+        newRow, newColumn = row + rowDirection, column + columnDirection
+        if 0 <= newRow < 8 and 0 <= newColumn < 8:  # Check bounds
+            if chessboard[newRow][newColumn] is None:  # Empty square
+                moves.append((newRow, newColumn))
+            elif chessboard[newRow][newColumn][0] != piece_color:  # Capture opponent's piece
+                moves.append((newRow, newColumn))
     return moves
 
 
